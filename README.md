@@ -25,10 +25,28 @@ This repository provides a detailed guide on WordPress development standards for
 - Use descriptive variable and function names in snake_case.
 
 ### Security Best Practices
-- Sanitize all inputs with functions like `sanitize_text_field()` or `sanitize_email()`.
-- Escape all outputs using `esc_html()`, `esc_attr()`, `esc_url()`, etc.
-- Validate data before saving to the database.
-- Use nonces for all form submissions and AJAX requests.
+- **Sanitize Inputs**: 
+  ```php
+  $user_input = isset( $_POST['username'] ) ? sanitize_text_field( $_POST['username'] ) : '';
+  ```
+
+- **Escape Outputs**:
+  ```php
+  echo esc_html( $user_input );
+  ```
+
+- **Use Nonces for Security**:
+  ```php
+  wp_nonce_field( 'save_action', 'save_nonce' );
+  if ( ! wp_verify_nonce( $_POST['save_nonce'], 'save_action' ) ) {
+      wp_die( esc_html__( 'Security check failed.', 'text-domain' ) );
+  }
+  ```
+
+- **Validate and Sanitize URLs**:
+  ```php
+  $url = isset( $_POST['website'] ) ? esc_url_raw( $_POST['website'] ) : '';
+  ```
 
 ### Performance Optimization
 - Optimize database queries; avoid using `SELECT *` and use `$wpdb->prepare()`.
@@ -108,7 +126,7 @@ register_deactivation_hook( __FILE__, 'plugin_deactivate' );
 ```php
 function handle_ajax_request() {
     check_ajax_referer( 'my_nonce', 'security' );
-    $response = array( 'message' => 'Success!' );
+    $response = array( 'message' => esc_html__( 'Success!', 'text-domain' ) );
     wp_send_json_success( $response );
 }
 add_action( 'wp_ajax_my_action', 'handle_ajax_request' );
@@ -127,7 +145,8 @@ $results = $wpdb->get_results( $query );
 ---
 
 ## Coding Style
-- Use `!function_exists` to avoid redeclaring functions:
+### Function Existence Check
+Use `! function_exists` to avoid redeclaring functions:
 ```php
 if ( ! function_exists( 'custom_function' ) ) {
     function custom_function() {
@@ -136,17 +155,21 @@ if ( ! function_exists( 'custom_function' ) ) {
 }
 ```
 
-- Escape all outputs before rendering them:
+### Escape All Outputs
+Always escape outputs before rendering:
 ```php
 <h1><?php echo esc_html( get_the_title() ); ?></h1>
 ```
 
-- Use nonces for security in forms and AJAX:
+### Translation and Localization
+Use translation functions for all user-facing text:
 ```php
-wp_nonce_field( 'save_action', 'save_nonce' );
-if ( ! wp_verify_nonce( $_POST['save_nonce'], 'save_action' ) ) {
-    wp_die( 'Security check failed' );
-}
+echo esc_html__( 'Hello, World!', 'text-domain' );
+```
+
+Use placeholders in translations:
+```php
+printf( esc_html__( 'You have %d new messages.', 'text-domain' ), $message_count );
 ```
 
 ---
