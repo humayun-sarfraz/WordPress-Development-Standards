@@ -2,7 +2,7 @@
 # WordPress Development Standards Guide
 
 ## Overview
-This repository contains a comprehensive guide on WordPress development standards for creating secure, performant, and high-quality themes and plugins. The guide follows official WordPress coding standards and includes best practices for security, performance, and compatibility.
+This repository provides a detailed guide on WordPress development standards for creating secure, high-quality, and performant themes and plugins. It adheres to official WordPress coding practices and includes guidelines for security, performance, and compatibility.
 
 ---
 
@@ -13,25 +13,33 @@ This repository contains a comprehensive guide on WordPress development standard
 4. [Coding Style](#coding-style)
 5. [Testing and Debugging](#testing-and-debugging)
 6. [Documentation and Deployment](#documentation-and-deployment)
+7. [License](#license)
+8. [Contributing](#contributing)
 
 ---
 
 ## General Standards
 ### Coding Standards
-- Use WordPress PHP coding standards for all PHP files.
-- Indent code with 4 spaces, avoid tabs.
+- Follow WordPress PHP, CSS, HTML, and JavaScript coding standards.
+- Use **4 spaces for indentation**, avoid tabs.
 - Use descriptive variable and function names in snake_case.
 
 ### Security Best Practices
-- Sanitize all input using functions like `sanitize_text_field()` and `sanitize_email()`.
-- Escape output using `esc_html()`, `esc_attr()`, etc.
+- Sanitize all inputs with functions like `sanitize_text_field()` or `sanitize_email()`.
+- Escape all outputs using `esc_html()`, `esc_attr()`, `esc_url()`, etc.
 - Validate data before saving to the database.
+- Use nonces for all form submissions and AJAX requests.
+
+### Performance Optimization
+- Optimize database queries; avoid using `SELECT *` and use `$wpdb->prepare()`.
+- Combine and minify CSS/JS files to reduce HTTP requests.
+- Use caching mechanisms (transients or object cache).
 
 ---
 
 ## Theme Development Standards
 ### Folder Structure
-Organize theme files as follows:
+Organize your theme as follows:
 ```
 /theme-name
     ├── style.css          // Theme metadata and global styles
@@ -43,32 +51,60 @@ Organize theme files as follows:
     └── templates/         // Reusable template parts
 ```
 
+### Template Hierarchy
+Use WordPress template hierarchy to structure theme files. Example:
+- Single posts: `single.php`, `single-{post-type}.php`.
+- Pages: `page.php`, `page-{slug}.php`.
+- Archives: `archive.php`, `archive-{post-type}.php`.
+
 ### Enqueue Styles and Scripts
-Always use `wp_enqueue_scripts` to load assets:
 ```php
-function theme_enqueue_assets() {
+function theme_enqueue_scripts() {
     wp_enqueue_style( 'main-style', get_stylesheet_uri() );
-    wp_enqueue_script( 'main-script', get_template_directory_uri() . '/assets/js/script.js', array(), '1.0', true );
+    wp_enqueue_script( 'main-script', get_template_directory_uri() . '/assets/js/script.js', array( 'jquery' ), '1.0', true );
 }
-add_action( 'wp_enqueue_scripts', 'theme_enqueue_assets' );
+add_action( 'wp_enqueue_scripts', 'theme_enqueue_scripts' );
 ```
+
+### Accessibility
+- Use semantic HTML and ARIA roles.
+- Ensure proper color contrast for readability.
+- Provide keyboard navigation and screen reader compatibility.
 
 ---
 
 ## Plugin Development Standards
 ### Folder Structure
-Organize plugin files as follows:
+Organize your plugin files as follows:
 ```
 /plugin-name
     ├── plugin-name.php    // Main plugin file
     ├── includes/          // Core plugin functionality
     ├── assets/            // CSS, JS, and images
     ├── languages/         // Translation files
-    └── templates/         // Templates for custom features
+    └── templates/         // Custom feature templates
+```
+
+### Activation and Deactivation
+```php
+if ( ! function_exists( 'plugin_activate' ) ) {
+    function plugin_activate() {
+        // Activation logic
+        flush_rewrite_rules();
+    }
+}
+register_activation_hook( __FILE__, 'plugin_activate' );
+
+if ( ! function_exists( 'plugin_deactivate' ) ) {
+    function plugin_deactivate() {
+        // Deactivation logic
+        flush_rewrite_rules();
+    }
+}
+register_deactivation_hook( __FILE__, 'plugin_deactivate' );
 ```
 
 ### Secure AJAX Implementation
-Use `wp_ajax` hooks and nonces for security:
 ```php
 function handle_ajax_request() {
     check_ajax_referer( 'my_nonce', 'security' );
@@ -79,11 +115,19 @@ add_action( 'wp_ajax_my_action', 'handle_ajax_request' );
 add_action( 'wp_ajax_nopriv_my_action', 'handle_ajax_request' );
 ```
 
+### Database Interactions
+Use `$wpdb->prepare()` for secure database queries:
+```php
+global $wpdb;
+$user_id = 1;
+$query = $wpdb->prepare( "SELECT * FROM {$wpdb->users} WHERE ID = %d", $user_id );
+$results = $wpdb->get_results( $query );
+```
+
 ---
 
 ## Coding Style
-### PHP
-- Use `! function_exists` to avoid redeclaring functions:
+- Use `!function_exists` to avoid redeclaring functions:
 ```php
 if ( ! function_exists( 'custom_function' ) ) {
     function custom_function() {
@@ -92,14 +136,26 @@ if ( ! function_exists( 'custom_function' ) ) {
 }
 ```
 
+- Escape all outputs before rendering them:
+```php
+<h1><?php echo esc_html( get_the_title() ); ?></h1>
+```
+
+- Use nonces for security in forms and AJAX:
+```php
+wp_nonce_field( 'save_action', 'save_nonce' );
+if ( ! wp_verify_nonce( $_POST['save_nonce'], 'save_action' ) ) {
+    wp_die( 'Security check failed' );
+}
+```
+
 ---
 
 ## Testing and Debugging
 ### PHPUnit Tests
-Use PHPUnit for unit tests:
 ```php
 class PluginTest extends WP_UnitTestCase {
-    public function test_function() {
+    public function test_function_exists() {
         $this->assertTrue( function_exists( 'plugin_function' ) );
     }
 }
@@ -112,21 +168,23 @@ define( 'WP_DEBUG', true );
 define( 'WP_DEBUG_LOG', true );
 ```
 
+Use Query Monitor to debug hooks, queries, and performance issues.
+
 ---
 
 ## Documentation and Deployment
 ### README Files
 Include the following in your `README.md`:
-- Plugin/Theme Description
-- Installation Instructions
-- Changelog
-- License Information
+1. Plugin/Theme Description
+2. Installation Instructions
+3. Changelog
+4. License Details
 
 ### Versioning
-Use semantic versioning (`MAJOR.MINOR.PATCH`).
+Use semantic versioning (`MAJOR.MINOR.PATCH`) for updates.
 
 ### Packaging
-Exclude unnecessary files and include only production-ready files.
+Exclude unnecessary files and include only production-ready files (e.g., `.git`, `.svn`, `.DS_Store`).
 
 ---
 
@@ -136,5 +194,4 @@ This project is licensed under the GPLv2 or later.
 ---
 
 ## Contributing
-Contributions are welcome! Please fork the repository and submit a pull request with your improvements.
-
+Contributions are welcome! Fork the repository and submit a pull request with improvements.
