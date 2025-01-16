@@ -1,202 +1,261 @@
+# WordPress Theme Development Guide
 
-# WordPress Development Standards Guide
+## **Overview**
+A WordPress theme determines the look and feel of a website, controlling the layout, design, and visual appearance. Themes enable developers to define templates for posts, pages, and custom content, providing users with customization options.
 
-## Overview
-This repository provides a detailed guide on WordPress development standards for creating secure, high-quality, and performant themes and plugins. It adheres to official WordPress coding practices and includes guidelines for security, performance, and compatibility. The guide is optimized for PHP 8.3 and leverages modern PHP features to enhance code quality and maintainability.
+### **Key Features of a WordPress Theme**
+1. **Customization**: Modify visual aspects via the Customizer API.
+2. **Templates**: Control layouts for pages, posts, and archives.
+3. **Widgets and Menus**: Add interactive elements.
+4. **Internationalization**: Ensure compatibility with multiple languages.
+5. **Accessibility**: Provide inclusive designs.
 
----
-
-## Table of Contents
-1. [General Standards](#general-standards)
-2. [Theme Development Standards](#theme-development-standards)
-3. [Plugin Development Standards](#plugin-development-standards)
-4. [Coding Style](#coding-style)
-5. [Testing and Debugging](#testing-and-debugging)
-6. [Documentation and Deployment](#documentation-and-deployment)
-7. [License](#license)
-8. [Contributing](#contributing)
-9. [Additional Resources](#additional-resources)
+### **Importance of Adhering to Standards**
+- **Maintainability**: Code that follows WordPress standards is easier to debug and update.
+- **Security**: Reduces vulnerabilities through proper sanitization and escaping.
+- **Compatibility**: Ensures seamless integration with plugins and core updates.
 
 ---
 
-## General Standards
+## **Folder Structure**
+Organizing your theme files systematically improves readability and scalability. Below is a typical folder structure:
 
-### Coding Standards
-
-- Follow WordPress PHP, CSS, HTML, and JavaScript coding standards.
-- Use **4 spaces for indentation**, avoid tabs.
-- Use descriptive variable and function names in snake_case.
-
-#### Examples:
-```php
-// Correct usage
-if ( ! function_exists( 'custom_function' ) ) {
-    function custom_function( string $name ): string {
-        return 'Hello, ' . esc_html( $name );
-    }
-}
-
-// Incorrect usage
-function customFunction($name){
-return 'Hello '.$name;
-}
-```
-
-### Security Best Practices
-
-#### Sanitize Inputs:
-```php
-$user_input = isset( $_POST['username'] ) ? sanitize_text_field( $_POST['username'] ) : '';
-```
-
-#### Escape Outputs:
-```php
-echo esc_html( $user_input );
-```
-
-#### Use Nonces for Security:
-```php
-wp_nonce_field( 'save_action', 'save_nonce' );
-if ( ! isset( $_POST['save_nonce'] ) || ! wp_verify_nonce( $_POST['save_nonce'], 'save_action' ) ) {
-    wp_die( esc_html__( 'Security check failed.', 'text-domain' ) );
-}
-```
-
-### Performance Optimization
-
-#### Database Queries:
-```php
-global $wpdb;
-$query = $wpdb->prepare( "SELECT ID, user_login FROM {$wpdb->users} WHERE ID = %d", 1 );
-$results = $wpdb->get_results( $query );
-```
-
-#### Caching:
-```php
-$cached_data = get_transient( 'my_plugin_cached_data' );
-if ( false === $cached_data ) {
-    $cached_data = 'Expensive operation result';
-    set_transient( 'my_plugin_cached_data', $cached_data, HOUR_IN_SECONDS );
-}
-echo $cached_data;
-```
-
----
-
-## Theme Development Standards
-
-### Folder Structure
 ```
 /theme-name
-├── style.css
-├── functions.php
-├── index.php
-├── header.php
-├── footer.php
-├── assets/
+├── style.css          // Theme metadata and global styles
+├── functions.php      // Theme setup and functions
+├── index.php          // Fallback template
+├── header.php         // Header template
+├── footer.php         // Footer template
+├── sidebar.php        // Sidebar template
+├── assets/            // CSS, JS, and images
 │   ├── css/
 │   │   └── main.css
 │   ├── js/
 │   │   └── main.js
-├── inc/
+│   └── images/
+│       └── logo.png
+├── inc/               // Included PHP files
 │   ├── customizer.php
 │   ├── setup.php
 │   └── template-tags.php
-├── languages/
+├── languages/         // Translation files
 │   └── theme-name.pot
-├── templates/
+├── template-parts/    // Reusable template parts
+│   ├── header/
+│   │   └── site-header.php
+│   └── footer/
+│       └── site-footer.php
+├── templates/         // Custom templates
 │   └── custom-template.php
+├── 404.php            // 404 error template
+├── archive.php        // Archive template
+└── page.php           // Page template
 ```
 
-### Enqueue Styles and Scripts
+### **File Purposes**
+- **style.css**: Defines theme metadata (e.g., `Theme Name`, `Author`) and global styles.
+- **functions.php**: Initializes theme features (e.g., menus, widgets).
+- **index.php**: The fallback template used if no other template matches.
+- **header.php** and **footer.php**: Contain the opening and closing HTML tags.
+- **assets/**: Contains all static resources.
+- **template-parts/**: Modular template sections, reusable across pages.
+- **languages/**: Translation-ready files.
+
+---
+
+## **Template Hierarchy**
+WordPress’s template hierarchy determines which template files are used based on the requested content type.
+
+### **Examples**
+1. **Single Posts**:
+   - `single.php`: Default single post template.
+   - `single-{post-type}.php`: Template for specific custom post types (e.g., `single-product.php`).
+
+2. **Pages**:
+   - `page.php`: General page template.
+   - `page-{slug}.php`: Template for specific pages by slug (e.g., `page-about.php`).
+
+3. **Archives**:
+   - `archive.php`: General archive template.
+   - `category.php`, `tag.php`: Templates for specific taxonomies.
+
+4. **Other Templates**:
+   - `404.php`: Template for not-found errors.
+   - `search.php`: Template for search results.
+
+### **Using Template Tags**
+Template tags allow dynamic content retrieval:
 ```php
-function theme_enqueue_scripts(): void {
-    wp_enqueue_style( 'main-style', get_stylesheet_uri(), [], '1.0.0', 'all' );
-    wp_enqueue_script( 'main-script', get_template_directory_uri() . '/assets/js/main.js', [ 'jquery' ], '1.0.0', true );
+<?php the_title(); ?>
+<?php the_content(); ?>
+<?php get_template_part( 'template-parts/header/site-header' ); ?>
+```
+
+### **Conditional Tags**
+Control template behavior based on conditions:
+```php
+if ( is_single() ) {
+    echo 'This is a single post.';
+}
+if ( is_category( 'news' ) ) {
+    echo 'Category: News';
+}
+```
+
+---
+
+## **Enqueueing Styles and Scripts**
+Properly enqueue assets to prevent conflicts and ensure dependencies are loaded.
+
+```php
+function theme_enqueue_scripts() {
+    wp_enqueue_style( 'theme-style', get_stylesheet_uri(), [], '1.0.0', 'all' );
+    wp_enqueue_script( 'theme-script', get_template_directory_uri() . '/assets/js/main.js', [ 'jquery' ], '1.0.0', true );
 }
 add_action( 'wp_enqueue_scripts', 'theme_enqueue_scripts' );
 ```
 
+### **Versioning**
+Use version numbers to prevent browser caching issues.
+
 ---
 
-## Plugin Development Standards
+## **Theme Options**
+Implement theme customization via the WordPress Customizer API.
 
-### Folder Structure
-```
-/plugin-name
-├── plugin-name.php
-├── includes/
-│   ├── class-my-plugin.php
-│   ├── functions.php
-│   └── admin.php
-├── assets/
-│   ├── css/
-│   │   └── admin.css
-│   ├── js/
-│   │   └── admin.js
-├── languages/
-│   └── my-plugin.pot
-```
-
-### Activation and Deactivation
 ```php
-if ( ! function_exists( 'plugin_activate' ) ) {
-    function plugin_activate(): void {
-        flush_rewrite_rules();
-    }
+function theme_customize_register( $wp_customize ) {
+    $wp_customize->add_section( 'theme_options', [
+        'title'    => __( 'Theme Options', 'theme-name' ),
+        'priority' => 30,
+    ]);
+
+    $wp_customize->add_setting( 'primary_color', [
+        'default'           => '#ffffff',
+        'sanitize_callback' => 'sanitize_hex_color',
+    ]);
+
+    $wp_customize->add_control( new WP_Customize_Color_Control( $wp_customize, 'primary_color', [
+        'label'    => __( 'Primary Color', 'theme-name' ),
+        'section'  => 'theme_options',
+    ]));
 }
-register_activation_hook( __FILE__, 'plugin_activate' );
+add_action( 'customize_register', 'theme_customize_register' );
 ```
 
 ---
 
-## Coding Style
-### Standards
-- Use `! function_exists` to avoid redeclaring functions.
-- Escape all outputs before rendering.
+## **Internationalization (i18n) and Localization (l10n)**
+Make your theme translatable by following these steps:
 
-### Examples:
+### **1. Load Text Domain**
 ```php
-<h1><?php echo esc_html( get_the_title() ); ?></h1>
+function theme_setup() {
+    load_theme_textdomain( 'theme-name', get_template_directory() . '/languages' );
+}
+add_action( 'after_setup_theme', 'theme_setup' );
 ```
 
----
-
-## Testing and Debugging
-
-### Debugging Tools
-Enable debugging in `wp-config.php`:
+### **2. Use Translation Functions**
 ```php
-define( 'WP_DEBUG', true );
-define( 'WP_DEBUG_LOG', true );
-define( 'WP_DEBUG_DISPLAY', false );
+echo __( 'Welcome to my site!', 'theme-name' );
+_e( 'Contact Us', 'theme-name' );
+printf( __( 'Hello, %s!', 'theme-name' ), esc_html( $user_name ) );
+```
+
+### **3. Generate .pot Files**
+Use tools like Poedit or WP-CLI:
+```bash
+wp i18n make-pot . languages/theme-name.pot
 ```
 
 ---
 
-## Documentation and Deployment
+## **Accessibility**
+Ensure your theme is inclusive by adhering to accessibility standards.
 
-### README Files
-Include comprehensive documentation with:
-1. Description
-2. Features
-3. Installation Instructions
-4. Usage Instructions
+### **Key Guidelines**
+1. **Semantic HTML5 Elements**:
+   ```html
+   <header>
+       <nav aria-label="Primary Navigation">
+           <?php wp_nav_menu( [ 'theme_location' => 'primary' ] ); ?>
+       </nav>
+   </header>
+   ```
+
+2. **Skip Links**:
+   ```html
+   <a href="#main-content" class="skip-link screen-reader-text">Skip to content</a>
+   ```
+
+3. **ARIA Attributes**:
+   ```html
+   <button aria-expanded="false" aria-controls="menu">Menu</button>
+   ```
+
+4. **Alt Attributes**:
+   ```html
+   <img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $alt_text ); ?>">
+   ```
 
 ---
 
-## License
-This project is licensed under the GPLv2 or later.
+## **Best Practices**
+1. **Sanitize Inputs**:
+   ```php
+   $sanitized_input = sanitize_text_field( $_POST['input_field'] );
+   ```
+
+2. **Escape Outputs**:
+   ```php
+   echo esc_html( $sanitized_input );
+   ```
+
+3. **Optimize Performance**:
+   - Lazy load images.
+   - Minify CSS/JS files.
 
 ---
 
-## Contributing
-Contributions are welcome! Fork the repository and submit a pull request.
+## **Theme Testing**
+1. Validate with the [Theme Check plugin](https://wordpress.org/plugins/theme-check/).
+2. Test responsiveness across devices.
+3. Ensure compatibility with major plugins.
 
 ---
 
-## Additional Resources
-- [WordPress Developer Handbook](https://developer.wordpress.org/)
-- [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/)
-- [Theme Development](https://developer.wordpress.org/themes/)
-- [Plugin Development](https://developer.wordpress.org/plugins/)
+## **Packaging and Documentation**
+1. **Prepare for Distribution**:
+   - Include only necessary files.
+   - Minify assets.
+
+2. **README.md Example**:
+   ```markdown
+   # Theme Name
+
+   ## Description
+   A brief description of your theme.
+
+   ## Installation
+   1. Upload the theme to `/wp-content/themes/`.
+   2. Activate it via the WordPress dashboard.
+   ```
+
+---
+
+## **Advanced Topics**
+1. **Child Themes**:
+   - Use child themes for overriding parent themes without modifying the original code.
+
+2. **Theme Hooks**:
+   - Utilize `do_action` and `apply_filters` to customize functionality.
+
+3. **Block-Based Themes**:
+   - Explore Full Site Editing (FSE) and block templates.
+
+---
+
+By following this guide, developers can create secure, scalable, and user-friendly WordPress themes that adhere to modern best practices.
+
