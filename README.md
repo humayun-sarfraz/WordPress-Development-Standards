@@ -1,1 +1,1 @@
-# WordPress-Development-Standards
+# WordPress Development Standards
