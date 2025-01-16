@@ -159,9 +159,9 @@ add_action( 'after_setup_theme', 'theme_setup' );
 
 ### **2. Use Translation Functions**
 ```php
-echo __( 'Welcome to my site!', 'theme-name' );
+echo esc_html__( 'Welcome to my site!', 'theme-name' );
 _e( 'Contact Us', 'theme-name' );
-printf( __( 'Hello, %s!', 'theme-name' ), esc_html( $user_name ) );
+printf( esc_html__( 'Hello, %s!', 'theme-name' ), esc_html( $user_name ) );
 ```
 
 ### **3. Generate .pot Files**
@@ -203,17 +203,29 @@ Ensure your theme is inclusive by adhering to accessibility standards.
 ---
 
 ## **Best Practices**
-1. **Sanitize Inputs**:
+1. **Use `!function_exists`**:
+   Prevent function redeclaration.
+   ```php
+   if ( ! function_exists( 'theme_setup' ) ) {
+       function theme_setup() {
+           add_theme_support( 'title-tag' );
+           add_theme_support( 'post-thumbnails' );
+       }
+   }
+   add_action( 'after_setup_theme', 'theme_setup' );
+   ```
+
+2. **Sanitize Inputs**:
    ```php
    $sanitized_input = sanitize_text_field( $_POST['input_field'] );
    ```
 
-2. **Escape Outputs**:
+3. **Escape Outputs**:
    ```php
    echo esc_html( $sanitized_input );
    ```
 
-3. **Optimize Performance**:
+4. **Optimize Performance**:
    - Lazy load images.
    - Minify CSS/JS files.
 
